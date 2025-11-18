@@ -144,7 +144,10 @@ const updateClient = async (req, res, next) => {
       return res.status(404).json({ error: "Cliente no encontrado" });
     }
 
-    return res.status(200).json(clientUpdated);
+    return res.status(200).json({
+      message: "Cliente actualizado",
+      client: clientUpdated,
+    });
   } catch (error) {
     if (error.name === "CastError" || error.name === "ValidationError") {
       return res.status(400).json({
@@ -173,7 +176,7 @@ const deleteClient = async (req, res, next) => {
 
     return res.status(200).json({
       message: "Cliente eliminado",
-      elemento: clientDeleted,
+      client: clientDeleted,
     });
   } catch (error) {
     if (error.name === "CastError") {
