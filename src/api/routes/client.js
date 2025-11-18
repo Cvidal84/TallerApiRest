@@ -9,6 +9,7 @@ const {
     deleteClient 
 } = require("../controllers/client");
 
+
 const clientsRouter = require("express").Router();
 
 // Obtener todos
