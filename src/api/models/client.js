@@ -23,7 +23,6 @@ const clientSchema = new Schema(
 
 //para hacer busquedas rápidas mas tarde por nombre o por telefono
 clientSchema.index({ name: 1 });
-clientSchema.index({ documentNumber: 1 });
 clientSchema.index({ telephone: 1 });
 
 const Client = mongoose.model("clients", clientSchema, "clients");

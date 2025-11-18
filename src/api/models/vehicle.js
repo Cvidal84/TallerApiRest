@@ -18,7 +18,6 @@ const vehicleSchema = new Schema(
 )
 
 vehicleSchema.index({ clientId: 1 });
-vehicleSchema.index({ plate: 1 });
 
 const Vehicle = mongoose.model("vehicles", vehicleSchema, "vehicles");
 module.exports = Vehicle;
