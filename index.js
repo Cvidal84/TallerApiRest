@@ -3,6 +3,7 @@ const express = require("express");
 const { connectDB } = require("./src/config/db");
 const clientsRouter = require("./src/api/routes/client");
 const vehiclesRouter = require("./src/api/routes/vehicle");
+const { usersRouter } = require("./src/api/routes/user");
 
 
 const app = express();
@@ -13,6 +14,7 @@ app.use(express.json());
 
 app.use("/api/v1/clients", clientsRouter);
 app.use("/api/v1/vehicles", vehiclesRouter);
+app.use("/api/v1/users", usersRouter);
 
 
 app.use((req, res, next) => {
