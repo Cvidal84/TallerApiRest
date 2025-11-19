@@ -20,8 +20,8 @@ const clientSchema = new Schema(
       lowercase: true,
       unique: true,
       match: [
-        /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,
-        "Por favor, introduce un correo electrónico válido.",
+        /^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$/,
+        "Por favor, introduce un correo electrónico válido",
       ],
     },
   },

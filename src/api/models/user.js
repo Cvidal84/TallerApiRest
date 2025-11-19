@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
       unique: true,
-      match: [/.+@.+\..+/, "Email inválido"],
+      match: [/^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$/, "Por favor, introduce un correo electrónico válido"],
     },
     password: {
       type: String,
@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.pre("save", function () {
+userSchema.pre("save", function (next) {
   // SOLO hasheamos la contraseña si ha sido modificada (registro o cambio de clave), sino me dará errores de login por DOBLE-HASH!!!!!!
   if (this.isModified("password")) {
     this.password = bcrypt.hashSync(this.password, 10);
