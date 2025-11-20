@@ -13,7 +13,7 @@ const isAdmin = (req, res, next) => {
     return next();
   }
 
-  // Si es user
+  // Si es mechanic
   if (req.user.role === "user") {
     if (req.params.id && String(req.params.id) !== String(req.user._id)) {
       return res.status(403).json("No puedes editar o eliminar a otro usuario ❌");
