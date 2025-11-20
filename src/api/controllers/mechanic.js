@@ -180,3 +180,5 @@ module.exports = {
     updateMechanic,
     deleteMechanic
 }
+
+//cuando se busca por nombre, si hay una tilde y no se pone no lo encuentra, se puede hacer que no mire las tildes????

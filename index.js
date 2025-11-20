@@ -5,7 +5,7 @@ const clientsRouter = require("./src/api/routes/client");
 const vehiclesRouter = require("./src/api/routes/vehicle");
 const { usersRouter } = require("./src/api/routes/user");
 const mechanicsRouter = require("./src/api/routes/mechanic");
-const workOrdersRouter = require("./src/api/routes/workOrder");
+/* const workOrdersRouter = require("./src/api/routes/workOrder"); */
 
 
 const app = express();
@@ -17,8 +17,8 @@ app.use(express.json());
 app.use("/api/v1/clients", clientsRouter);
 app.use("/api/v1/vehicles", vehiclesRouter);
 app.use("/api/v1/users", usersRouter);
-app.use("/api/v1/mechanics", mechanicsRouter); //falta completarlo
-app.use("/api/v1/workOrders", workOrdersRouter); //falta completarlo
+app.use("/api/v1/mechanics", mechanicsRouter); 
+/* app.use("/api/v1/workOrders", workOrdersRouter); //falta completarlo */
 
 
 
