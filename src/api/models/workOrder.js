@@ -1,8 +1,8 @@
-/* const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
 
-const workOrderSchema = new Schema(
+const workorderSchema = new Schema(
     {
         //cliente de la orden
         clientId: {
@@ -26,8 +26,43 @@ const workOrderSchema = new Schema(
         mechanicId: {
             type: Schema.Types.ObjectId,
             ref: "mechanics",
+            required: true,
         },
-        //
+        status: {
+            type: String,
+            enum:["Pending", "In Progress", "Completed", "Cancelled"],
+            default: "Pending",
+            required: true,
+        },
+        description: {
+        type: String,
+        required: true,
+        trim: true,
+        },
+        entryDate: {
+        type: Date,
+        default: Date.now,
+        },
 
+        // fecha de salida / entrega
+        exitDate: {
+        type: Date,
+        },
+
+        // kms del coche al entrar, podria actualizar la ficha del coche.
+        kms: {
+        type: Number,
+        },
+
+        // costes (opcional)
+        estimatedCost: { type: Number },
+        finalCost: { type: Number },
+    },
+    {
+        timestamps: true,
+        versionKey: false,
     }
-) */
+)
+
+const Workorder = mongoose.model("Workorder", workorderSchema, "workorders");
+module.exports = Workorder;
