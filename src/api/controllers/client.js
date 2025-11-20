@@ -36,17 +36,17 @@ const getClientByName = async (req, res, next) => {
         .json({ error: "Debes enviar un nombre para buscar" });
     }
     // Búsqueda insensible a mayúsculas/minúsculas
-    const clients = await Client.find({
+    const client = await Client.find({
       name: { $regex: name, $options: "i" },
     });
 
-    if (clients.length === 0) {
+    if (client.length === 0) {
       return res
         .status(404)
         .json({ error: "No se encontraron clientes con ese nombre" });
     }
 
-    return res.status(200).json(clients);
+    return res.status(200).json(client);
   } catch (error) {
     return res.status(500).json({ error: "Error en la búsqueda" });
   }
