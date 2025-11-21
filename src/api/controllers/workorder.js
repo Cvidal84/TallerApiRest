@@ -1,4 +1,6 @@
 const Workorder = require("../models/workorder");
+const Client = require("../models/client");
+const Vehicle = require("../models/vehicle");
 
 const getWorkorders = async (req, res, next) => {
     try {
@@ -82,8 +84,8 @@ const getWorkorderByClientId = async (req, res, next) => {
         .json({ error: "Error al buscar albaranes de trabajo del cliente" });
     }
 };
-
-const getWorkordersByVehicleId = async (req, res, next) => {
+//no tiene sentido buscar partes de trabajo por coche, con cliente y matrícula ya esta bien.
+/* const getWorkordersByVehicleId = async (req, res, next) => {
   try {
     const { vehicleId } = req.params;
 
@@ -109,7 +111,7 @@ const getWorkordersByVehicleId = async (req, res, next) => {
       .status(500)
       .json({ error: "Error al buscar órdenes de trabajo del vehículo" });
   }
-};
+}; */
 
 const getWorkordersByPlate = async (req, res, next) => {
   try {
@@ -152,7 +154,36 @@ const postWorkorder = async (req, res, next) => {
         .json({ error: "Faltan datos del albarán de trabajo" });
     }
 
-    const newWorkorder = new Workorder(req.body);
+    const { clientId, vehicleId } = req.body;
+
+    // Comprobamos que vengan los IDs mínimos
+    if (!clientId || !vehicleId) {
+      return res.status(400).json({
+        error: "Debes enviar al menos clientId y vehicleId",
+      });
+    }
+
+    // 1. Buscamos el cliente
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ error: "Cliente no encontrado" });
+    }
+
+    // 2. Buscamos el vehículo
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) {
+      return res.status(404).json({ error: "Vehículo no encontrado" });
+    }
+
+    // 3. Creamos la workorder usando:
+    //    - lo que viene en el body
+    //    - más clientName y vehiclePlate como snapshot
+    const newWorkorder = new Workorder({
+      ...req.body,
+      clientName: client.name,
+      vehiclePlate: vehicle.plate,
+    });
+
     const workorderSaved = await newWorkorder.save();
 
     return res.status(201).json({
@@ -162,17 +193,15 @@ const postWorkorder = async (req, res, next) => {
   } catch (error) {
     console.error("Error al crear albarán de trabajo:", error);
 
-    // Fallo de validación: campos requeridos, enum de status, etc.
     if (error.name === "ValidationError") {
       return res.status(400).json({
         error: "Datos del albarán de trabajo inválidos",
       });
     }
 
-    // IDs de clientId, vehicleId, mechanicId, createdBy mal formados
     if (error.name === "CastError") {
       return res.status(400).json({
-        error: "La solicitud contiene datos inválidos (IDs relacionados)",
+        error: "La solicitud contiene IDs inválidos",
       });
     }
 
@@ -181,6 +210,7 @@ const postWorkorder = async (req, res, next) => {
     });
   }
 };
+
 
 const updateWorkorder = async (req, res, next) => {
   try {
@@ -260,7 +290,7 @@ module.exports = {
     getWorkordersByClientName,
     getWorkorderByClientId,
     getWorkordersByPlate,
-    getWorkordersByVehicleId,
+    /* getWorkordersByVehicleId, */
     postWorkorder,
     updateWorkorder,
     deleteWorkorder

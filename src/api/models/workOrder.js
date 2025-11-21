@@ -10,11 +10,22 @@ const workorderSchema = new Schema(
             ref: "clients", //referencia a colección de clientes
             required: true,
         },
+        clientName: {
+            type: String,
+            required: true,
+            trim: true,
+        },
         //vehiculo reparado
         vehicleId: {
             type: Schema.Types.ObjectId,
             ref: "vehicles",
             required: true,
+        },
+        // matrícula en el momento de crear la orden (snapshot)
+        vehiclePlate: {
+            type: String,
+            required: true,
+            trim: true,
         },
         //usuario que lo crea
         createdBy: {

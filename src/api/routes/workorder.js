@@ -17,8 +17,6 @@ workordersRouter.get("/search", getWorkordersByClientName);
 
 workordersRouter.get("/plate/:plate", getWorkordersByPlate);
 
-workordersRouter.get("/vehicle/:vehicleId", getWorkordersByVehicleId);
-
 workordersRouter.get("/client/:clientId", getWorkorderByClientId);
 
 workordersRouter.post("/", postWorkorder);
