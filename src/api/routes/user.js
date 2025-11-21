@@ -16,4 +16,4 @@ usersRouter.get("/", isAuth, getUsers); /* todos pueden ver o solo admins? */
 usersRouter.put("/:id", isAuth, isAdmin, updateUser);
 usersRouter.delete("/:id", isAuth, isAdmin, deleteUser);
 
-module.exports = { usersRouter };
+module.exports = usersRouter;
