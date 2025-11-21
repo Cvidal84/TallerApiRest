@@ -26,7 +26,7 @@ const getClientById = async (req, res, next) => {
   }
 };
 
-const getClientByName = async (req, res, next) => {
+/* const getClientByName = async (req, res, next) => {
   try {
     const { name } = req.query;
 
@@ -50,9 +50,9 @@ const getClientByName = async (req, res, next) => {
   } catch (error) {
     return res.status(500).json({ error: "Error en la búsqueda" });
   }
-};
+}; */
 
-const getClientByDocument = async (req, res, next) => {
+/* const getClientByDocument = async (req, res, next) => {
   try {
     const { documentNumber } = req.params;
     if (!documentNumber) {
@@ -75,10 +75,10 @@ const getClientByDocument = async (req, res, next) => {
     }
     return res.status(500).json({ error: "Error en la búsqueda" });
   }
-};
+}; */
 
 /* REVISAR SI LO DEJAMOS ASÍ Y PONEMOS UNIQUE EN EL MODELO O ADAPTAR ESTE CONTROLADOR!!!! */
-const getClientByTelephone = async (req, res, next) => {
+/* const getClientByTelephone = async (req, res, next) => {
   try {
     const { telephone } = req.params;
 
@@ -97,6 +97,36 @@ const getClientByTelephone = async (req, res, next) => {
     return res.status(200).json(client);
   } catch (error) {
     return res.status(500).json({ error: "Error en la búsqueda" });
+  }
+}; */
+
+const searchClients = async (req, res, next) => {
+  try {
+    const { name, documentNumber, telephone, email } = req.query;
+    if (!name && !documentNumber && !telephone && !email && !city) {
+      return res
+        .status(400)
+        .json({ error: "Debes enviar al menos un criterio de búsqueda" });
+    }
+
+    const filter = {};
+
+    if (name) filter.name = { $regex: name, $options: "i" };
+    if (documentNumber)
+      filter.documentNumber = { $regex: documentNumber, $options: "i" };
+    if (telephone) filter.telephone = { $regex: telephone, $options: "i" };
+    if (email) filter.email = { $regex: email, $options: "i" };
+
+    const clients = await Client.find(filter);
+
+    if (clients.length === 0) {
+      return res.status(404).json({
+        error: "No se encontraron clientes que coincidan con la búsqueda",
+      });
+    }
+    return res.status(200).json({ clients });
+  } catch (error) {
+    return res.status(500).json({ error: "Error buscando los clientes" });
   }
 };
 
@@ -192,10 +222,11 @@ const deleteClient = async (req, res, next) => {
 
 module.exports = {
   getClients,
+  searchClients,
   getClientById,
-  getClientByName,
+  /* getClientByName,
   getClientByDocument,
-  getClientByTelephone,
+  getClientByTelephone, */
   postClient,
   updateClient,
   deleteClient,

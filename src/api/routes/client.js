@@ -1,29 +1,32 @@
-const { 
-    getClients, 
-    getClientByName, 
-    getClientById, 
-    getClientByDocument, 
-    getClientByTelephone, 
-    postClient, 
-    updateClient, 
-    deleteClient 
+const {
+  getClients,
+  getClientByName,
+  getClientById,
+  getClientByDocument,
+  getClientByTelephone,
+  postClient,
+  updateClient,
+  deleteClient,
+  searchClients,
 } = require("../controllers/client");
-
 
 const clientsRouter = require("express").Router();
 
 // Obtener todos
 clientsRouter.get("/", getClients);
 
+// Buscar por nombre, documento, telefono, email:
+clientsRouter.get("/search", searchClients);
+
 // Buscar por nombre
-clientsRouter.get("/search", getClientByName);
-
+/* clientsRouter.get("/search", getClientByName);
+ */
 // Buscar por documento
-clientsRouter.get("/document/:documentNumber", getClientByDocument);
-
+/* clientsRouter.get("/document/:documentNumber", getClientByDocument);
+ */
 // Buscar por teléfono
-clientsRouter.get("/telephone/:telephone", getClientByTelephone);
-
+/* clientsRouter.get("/telephone/:telephone", getClientByTelephone);
+ */
 // Buscar por ID (debe ir al final de los GET)
 clientsRouter.get("/:id", getClientById);
 
