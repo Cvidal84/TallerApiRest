@@ -4,13 +4,12 @@ const bcrypt = require("bcrypt");
 
 const register = async (req, res, next) => {
   try {
-    const userDuplicated = await User.findOne({ email: req.body.email });
-    if (userDuplicated) {
-      return res
-        .status(400)
-        .json("Este usuario ya existe en la base de datos ❌");
-    }
-    const user = new User(req.body);
+    const { email, password } = req.body;
+    const user = new User({
+      email,
+      password,
+      role: "user",
+    });
     const userSaved = await user.save();
 
     /* LIMPIEZA DE SEGURIDAD PARA NO ENVIAR LA CONTRASEÑA AUNQUE VAYA HASHEADA: */
@@ -19,10 +18,13 @@ const register = async (req, res, next) => {
 
     return res
       .status(201)
-      .json({ message: "Usuario registrado con éxito", user: userResponse });
+      .json({ message: "Usuario registrado con éxito ✅", user: userResponse });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ error: "Ese email ya está registrado ❌" });
+    }
     if (error.name === "ValidationError") {
-      return res.status(400).json({ error: "Datos de usuario inválidos" });
+      return res.status(400).json({ error: "Datos de usuario inválidos ❌" });
     }
     res.status(500).json({ error: "Error registrando al usuario ⚠️" });
   }
@@ -32,77 +34,73 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    //si el usuario no esta responde incorrecto
     if (!user) {
-      return res.status(400).json("Usuario o contraseña incorrectos ❌");
+      return res
+        .status(400)
+        .json({ error: "Usuario o contraseña incorrectos ❌" });
     }
-    //si esta el usuario, compara la contraseña que puse con la del usuario, encripta ambas para compararlas
     if (bcrypt.compareSync(password, user.password)) {
       const token = generateToken(user._id);
-      return res.status(200).json({ token, user });
+      const userResponse = user.toObject();
+      delete userResponse.password;
+      return res
+        .status(200)
+        .json({ message: "Login exitoso ✅", token, user: userResponse });
     } else {
-      return res.status(400).json("Usuario o contraseña incorrectos ❌");
+      return res
+        .status(400)
+        .json({ error: "Usuario o contraseña incorrectos ❌" });
     }
   } catch (error) {
-    return res.status(400).json("error ⚠️");
+    return res.status(500).json({ error: "Error en el login ⚠️" });
   }
 };
 
-//vamos a hacer que se puedan ver todos los usuarios para la autentificacion
 const getUsers = async (req, res, next) => {
   try {
-    const users = await User.find();
-    return res.status(200).json(users);
+    const users = await User.find().select("-password");
+    return res.status(200).json({ users });
   } catch (error) {
-    return res.status(400).json("Error ⚠️");
+    return res.status(500).json({ error: "Error obteniendo los usuarios ⚠️" });
   }
 };
 
 //funcion para modificar los usuarios
-/* const updateUser = async (req, res, next) => {
+const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const newUser = new User(req.body);
-    newUser._id = id;
-    if (req.user.role === "admin") {
-      newUser.role = "admin";
-    }
-    const userUpdated = await User.findByIdAndUpdate(id, newUser, {
-      new: true,
-    });
-    return res.status(200).json({
-      message: `The user  ${userUpdated.name} was successfully updated ✅`,
-      user: userUpdated,
-    });
-  } catch (error) {
-    return res.status(400).json("Error ⚠️");
-  }
-}; */
+    // Extraemos SOLO lo que permitimos editar:
+    const { email, password, role } = req.body;
 
-const updateUser = async (req, res, next) => {
-  const { id } = req.params;
-  try {
     const user = await User.findById(id);
     if (!user) {
-      return res
-        .status(404)
-        .json({ error: `No se ha encontrado ningún usuario con el id ${id}` });
+      return res.status(404).json({
+        error: `No se ha encontrado ningún usuario con el id ${id} ❌`,
+      });
     }
-    /* SI USAMOS EL FINDBYIDANDUPDATE LA LIAMOS SI EL CAMBIO ESTÁ EN LA CONTRASEÑA PORQUE SE GUARDARÁ SIN HASHEAR, ENTONCES: */
-    Object.assign(user, req.body);
+
+    if (email) user.email = email;
+    if (role) user.role = role;
+    if (password) user.password = password;
+
     const userUpdated = await user.save();
 
     const userResponse = userUpdated.toObject();
     delete userResponse.password;
     return res.status(200).json({
-      message: "Usuario editado con éxito",
+      message: "Usuario editado con éxito ✅",
       user: userResponse,
     });
   } catch (error) {
     if (error.name === "ValidationError" || error.name === "CastError") {
-      return res.status(400).json({ error: "Datos de usuario inválidos" });
+      return res.status(400).json({ error: "Datos de usuario inválidos ❌" });
     }
-    return res.status(500).json({ error: "Error al editar el usuario" });
+    if (error.code === 11000) {
+      return res
+        .status(409)
+        .json({ error: "Ya existe un usuario registrado con ese email ❌" });
+    }
+    return res.status(500).json({ error: "Error al editar el usuario ⚠️" });
   }
 };
 
@@ -110,11 +108,18 @@ const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userDeleted = await User.findByIdAndDelete(id);
+    if (!userDeleted) {
+      return res.status(404).json({ error: "Usuario no encontrado ❌" });
+    }
     return res.status(200).json({
-      message: `The user ${userDeleted.email} was successfully deleted ✅`,
+      message: "Usuario eliminado correctamente ✅",
+      user: { email: userDeleted.email },
     });
   } catch (error) {
-    return res.status(400).json("Error ⚠️");
+    if (error.name === "CastError") {
+      return res.status(400).json({ error: "ID de usuario inválido ❌" });
+    }
+    return res.status(500).json({ error: "Error al eliminar el usuario ⚠️" });
   }
 };
 
