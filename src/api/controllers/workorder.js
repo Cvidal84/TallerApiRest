@@ -3,13 +3,15 @@ const Client = require("../models/client");
 const Vehicle = require("../models/vehicle");
 
 const getWorkorders = async (req, res, next) => {
-    try {
-        const workorders = await Workorder.find();
-        return res.status(200).json(workorders);
-    } catch (error) {
-        return res.status(500).json({ error: "Error obteniendo los albaranes de trabajo" });
-    }
-}
+  try {
+    const workorders = await Workorder.find();
+    return res.status(200).json(workorders);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: "Error obteniendo los albaranes de trabajo" });
+  }
+};
 
 const getWorkordersByClientName = async (req, res, next) => {
   try {
@@ -47,7 +49,6 @@ const getWorkordersByClientName = async (req, res, next) => {
     }
 
     return res.status(200).json(workorders);
-
   } catch (error) {
     console.error("Error al buscar workorders por nombre de cliente:", error);
 
@@ -57,32 +58,32 @@ const getWorkordersByClientName = async (req, res, next) => {
   }
 };
 
-
 //pueden ser ninguna o varias ordenes
 const getWorkorderByClientId = async (req, res, next) => {
-    try {
-        const { clientId } = req.params;
-        if (!clientId) {
-            return res.status(400).json({ error: "Debes enviar un ID de cliente" });      
-        }
-        const workorders = await Workorder.find({ clientId });
-        if (workorders.length === 0) {
-            return res
-                .status(404)
-                .json({ error: "Este cliente no tiene albaranes de trabajo registrados" });
-        }
-        return res.status(200).json(workorders);
-    
-    } catch (error) {
-        if (error.name === "CastError") {
-        return res
-            .status(400)
-            .json({ error: "La solicitud contiene datos inválidos" });
-        }
-        return res
-        .status(500)
-        .json({ error: "Error al buscar albaranes de trabajo del cliente" });
+  try {
+    const { clientId } = req.params;
+    if (!clientId) {
+      return res.status(400).json({ error: "Debes enviar un ID de cliente" });
     }
+    const workorders = await Workorder.find({ clientId });
+    if (workorders.length === 0) {
+      return res
+        .status(404)
+        .json({
+          error: "Este cliente no tiene albaranes de trabajo registrados",
+        });
+    }
+    return res.status(200).json(workorders);
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res
+        .status(400)
+        .json({ error: "La solicitud contiene datos inválidos" });
+    }
+    return res
+      .status(500)
+      .json({ error: "Error al buscar albaranes de trabajo del cliente" });
+  }
 };
 //no tiene sentido buscar partes de trabajo por coche, con cliente y matrícula ya esta bien.
 const getWorkordersByVehicleId = async (req, res, next) => {
@@ -102,7 +103,6 @@ const getWorkordersByVehicleId = async (req, res, next) => {
     }
 
     return res.status(200).json(workorders);
-
   } catch (error) {
     if (error.name === "CastError") {
       return res.status(400).json({ error: "ID de vehículo inválido" });
@@ -123,7 +123,7 @@ const getWorkordersByPlate = async (req, res, next) => {
 
     // Buscar el vehículo por matrícula
     const vehicle = await Vehicle.findOne({
-      plate: { $regex: `^${plate}$`, $options: "i" }
+      plate: { $regex: `^${plate}$`, $options: "i" },
     });
 
     if (!vehicle) {
@@ -135,12 +135,11 @@ const getWorkordersByPlate = async (req, res, next) => {
 
     if (workorders.length === 0) {
       return res.status(404).json({
-        error: "Este vehículo no tiene órdenes de trabajo registradas"
+        error: "Este vehículo no tiene órdenes de trabajo registradas",
       });
     }
 
     return res.status(200).json(workorders);
-
   } catch (error) {
     return res.status(500).json({ error: "Error en la búsqueda" });
   }
@@ -211,7 +210,6 @@ const postWorkorder = async (req, res, next) => {
   }
 };
 
-
 const updateWorkorder = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -225,16 +223,16 @@ const updateWorkorder = async (req, res, next) => {
     });
 
     if (!workorderUpdated) {
-      return res.status(404).json({ error: "Albarán de trabajo no encontrado" });
+      return res
+        .status(404)
+        .json({ error: "Albarán de trabajo no encontrado" });
     }
 
     return res.status(200).json({
       message: "Albarán de trabajo actualizado",
       workorder: workorderUpdated,
     });
-
   } catch (error) {
-
     // Cuando el ID no tiene formato válido
     if (error.name === "CastError") {
       return res.status(400).json({
@@ -263,14 +261,15 @@ const deleteWorkorder = async (req, res, next) => {
     const workorderDeleted = await Workorder.findByIdAndDelete(id);
 
     if (!workorderDeleted) {
-      return res.status(404).json({ error: "Albarán de trabajo no encontrado" });
+      return res
+        .status(404)
+        .json({ error: "Albarán de trabajo no encontrado" });
     }
 
     return res.status(200).json({
       message: "Albarán de trabajo eliminado",
       workorder: workorderDeleted,
     });
-
   } catch (error) {
     if (error.name === "CastError") {
       return res.status(400).json({
@@ -286,12 +285,12 @@ const deleteWorkorder = async (req, res, next) => {
 };
 
 module.exports = {
-    getWorkorders,
-    getWorkordersByClientName,
-    getWorkorderByClientId,
-    getWorkordersByPlate,
-    getWorkordersByVehicleId,
-    postWorkorder,
-    updateWorkorder,
-    deleteWorkorder
-}
+  getWorkorders,
+  getWorkordersByClientName,
+  getWorkorderByClientId,
+  getWorkordersByPlate,
+  getWorkordersByVehicleId,
+  postWorkorder,
+  updateWorkorder,
+  deleteWorkorder,
+};

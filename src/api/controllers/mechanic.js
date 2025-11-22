@@ -1,57 +1,56 @@
 const Mechanic = require("../models/mechanic");
 
 const getMechanics = async (req, res, next) => {
-    try {
-        const mechanics = await Mechanic.find();
-        return res.status(200).json(mechanics);
-    } catch (error) {
-        return res.status(500).json({ error: "Error obteniendo los mecanicos" });
-    }
+  try {
+    const mechanics = await Mechanic.find();
+    return res.status(200).json(mechanics);
+  } catch (error) {
+    return res.status(500).json({ error: "Error obteniendo los mecanicos" });
+  }
 };
 
 const getMechanicById = async (req, res, next) => {
-    try {
-        const mechanic = await Mechanic.findById(req.params.id);
-        if (!mechanic) {
-            return res.status(404).json({ error: "Mecánico no encontrado" });
-        }
-        return res.status(200).json(mechanic);
-    } catch (error) {
-        if (error.name === "CastError") {
-        return res
-            .status(400)
-            .json({ error: "La solicitud contiene datos inválidos" });
-        }
-        return res.status(500).json({ error: "Error obteniendo el mecánico" });
-        
+  try {
+    const mechanic = await Mechanic.findById(req.params.id);
+    if (!mechanic) {
+      return res.status(404).json({ error: "Mecánico no encontrado" });
     }
-}
+    return res.status(200).json(mechanic);
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res
+        .status(400)
+        .json({ error: "La solicitud contiene datos inválidos" });
+    }
+    return res.status(500).json({ error: "Error obteniendo el mecánico" });
+  }
+};
 
 const getMechanicByName = async (req, res, next) => {
-    try {
-        const { name } = req.query;
+  try {
+    const { name } = req.query;
 
-        if (!name) {
-            return res
-                .status(400)
-                .json({ error: "Debes enviar un nombre para buscar" });
-        }
-
-        const mechanic = await Mechanic.find({
-            name: { $regex: name, $options: "i" },
-        });
-
-        if (mechanic.length === 0) {
-            return res
-                .status(404)
-                .json({ error: "No se encontraron mecánicos con ese nombre" });
-        }
-
-        return res.status(200).json(mechanic);
-    } catch (error) {
-        return res.status(500).json({ error: "Error en la búsqueda" });
+    if (!name) {
+      return res
+        .status(400)
+        .json({ error: "Debes enviar un nombre para buscar" });
     }
-}
+
+    const mechanic = await Mechanic.find({
+      name: { $regex: name, $options: "i" },
+    });
+
+    if (mechanic.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No se encontraron mecánicos con ese nombre" });
+    }
+
+    return res.status(200).json(mechanic);
+  } catch (error) {
+    return res.status(500).json({ error: "Error en la búsqueda" });
+  }
+};
 
 const getMechanicByTelephone = async (req, res, next) => {
   try {
@@ -88,9 +87,7 @@ const postMechanic = async (req, res, next) => {
       message: "Mecánico creado con éxito",
       mechanic: mechanicSaved,
     });
-
   } catch (error) {
-
     if (error.name === "ValidationError") {
       return res.status(400).json({ error: "Datos del mecánico inválidos" });
     }
@@ -123,9 +120,7 @@ const updateMechanic = async (req, res, next) => {
       message: "Mecánico actualizado",
       mechanic: mechanicUpdated,
     });
-
   } catch (error) {
-
     if (error.name === "CastError" || error.name === "ValidationError") {
       return res.status(400).json({
         error: "La solicitud contiene datos inválidos",
@@ -157,7 +152,6 @@ const deleteMechanic = async (req, res, next) => {
       message: "Mecánico eliminado",
       mechanic: mechanicDeleted,
     });
-
   } catch (error) {
     if (error.name === "CastError") {
       return res.status(400).json({
@@ -172,13 +166,13 @@ const deleteMechanic = async (req, res, next) => {
 };
 
 module.exports = {
-    getMechanics,
-    getMechanicById,
-    getMechanicByName,
-    getMechanicByTelephone,
-    postMechanic,
-    updateMechanic,
-    deleteMechanic
-}
+  getMechanics,
+  getMechanicById,
+  getMechanicByName,
+  getMechanicByTelephone,
+  postMechanic,
+  updateMechanic,
+  deleteMechanic,
+};
 
 //cuando se busca por nombre, si hay una tilde y no se pone no lo encuentra, se puede hacer que no mire las tildes????
