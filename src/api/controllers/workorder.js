@@ -85,7 +85,7 @@ const getWorkorderByClientId = async (req, res, next) => {
     }
 };
 //no tiene sentido buscar partes de trabajo por coche, con cliente y matrícula ya esta bien.
-/* const getWorkordersByVehicleId = async (req, res, next) => {
+const getWorkordersByVehicleId = async (req, res, next) => {
   try {
     const { vehicleId } = req.params;
 
@@ -111,7 +111,7 @@ const getWorkorderByClientId = async (req, res, next) => {
       .status(500)
       .json({ error: "Error al buscar órdenes de trabajo del vehículo" });
   }
-}; */
+};
 
 const getWorkordersByPlate = async (req, res, next) => {
   try {
@@ -290,7 +290,7 @@ module.exports = {
     getWorkordersByClientName,
     getWorkorderByClientId,
     getWorkordersByPlate,
-    /* getWorkordersByVehicleId, */
+    getWorkordersByVehicleId,
     postWorkorder,
     updateWorkorder,
     deleteWorkorder
