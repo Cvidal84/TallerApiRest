@@ -6,11 +6,13 @@ const vehiclesRouter = require("./src/api/routes/vehicle");
 const usersRouter = require("./src/api/routes/user");
 const mechanicsRouter = require("./src/api/routes/mechanic");
 const workordersRouter = require("./src/api/routes/workorder");
+const cors = require("cors"); // para conectar al frontend
 
 const app = express();
 
 connectDB();
 
+app.use(cors());//para poder conectar backend con frontend
 app.use(express.json());
 
 app.use("/api/v1/clients", clientsRouter);
