@@ -21,12 +21,12 @@ const register = async (req, res, next) => {
       .json({ message: "Usuario registrado con éxito ✅", user: userResponse });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(409).json({ error: "Ese email ya está registrado ❌" });
+      return res.status(409).json({ error: "Ese email ya está registrado ⚠️" });
     }
     if (error.name === "ValidationError") {
-      return res.status(400).json({ error: "Datos de usuario inválidos ❌" });
+      return res.status(400).json({ error: "Datos de usuario inválidos ⚠️" });
     }
-    res.status(500).json({ error: "Error registrando al usuario ⚠️" });
+    res.status(500).json({ error: "Error registrando al usuario ❌" });
   }
 };
 
@@ -37,7 +37,7 @@ const login = async (req, res, next) => {
     if (!user) {
       return res
         .status(400)
-        .json({ error: "Usuario o contraseña incorrectos ❌" });
+        .json({ error: "Usuario o contraseña incorrectos ⚠️" });
     }
     if (bcrypt.compareSync(password, user.password)) {
       const token = generateToken(user._id);
@@ -49,10 +49,10 @@ const login = async (req, res, next) => {
     } else {
       return res
         .status(400)
-        .json({ error: "Usuario o contraseña incorrectos ❌" });
+        .json({ error: "Usuario o contraseña incorrectos ⚠️" });
     }
   } catch (error) {
-    return res.status(500).json({ error: "Error en el login ⚠️" });
+    return res.status(500).json({ error: "Error en el login ❌" });
   }
 };
 
@@ -61,7 +61,7 @@ const getUsers = async (req, res, next) => {
     const users = await User.find().select("-password");
     return res.status(200).json({ users });
   } catch (error) {
-    return res.status(500).json({ error: "Error obteniendo los usuarios ⚠️" });
+    return res.status(500).json({ error: "Error obteniendo los usuarios ❌" });
   }
 };
 
@@ -75,7 +75,7 @@ const updateUser = async (req, res, next) => {
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({
-        error: `No se ha encontrado ningún usuario con el id ${id} ❌`,
+        error: `No se ha encontrado ningún usuario con el id ${id} ⚠️`,
       });
     }
 
@@ -93,14 +93,14 @@ const updateUser = async (req, res, next) => {
     });
   } catch (error) {
     if (error.name === "ValidationError" || error.name === "CastError") {
-      return res.status(400).json({ error: "Datos de usuario inválidos ❌" });
+      return res.status(400).json({ error: "Datos de usuario inválidos ⚠️" });
     }
     if (error.code === 11000) {
       return res
         .status(409)
-        .json({ error: "Ya existe un usuario registrado con ese email ❌" });
+        .json({ error: "Ya existe un usuario registrado con ese email ⚠️" });
     }
-    return res.status(500).json({ error: "Error al editar el usuario ⚠️" });
+    return res.status(500).json({ error: "Error al editar el usuario ❌" });
   }
 };
 
@@ -109,7 +109,7 @@ const deleteUser = async (req, res, next) => {
     const { id } = req.params;
     const userDeleted = await User.findByIdAndDelete(id);
     if (!userDeleted) {
-      return res.status(404).json({ error: "Usuario no encontrado ❌" });
+      return res.status(404).json({ error: "Usuario no encontrado ⚠️" });
     }
     return res.status(200).json({
       message: "Usuario eliminado correctamente ✅",
@@ -117,9 +117,9 @@ const deleteUser = async (req, res, next) => {
     });
   } catch (error) {
     if (error.name === "CastError") {
-      return res.status(400).json({ error: "ID de usuario inválido ❌" });
+      return res.status(400).json({ error: "ID de usuario inválido ⚠️" });
     }
-    return res.status(500).json({ error: "Error al eliminar el usuario ⚠️" });
+    return res.status(500).json({ error: "Error al eliminar el usuario ❌" });
   }
 };
 

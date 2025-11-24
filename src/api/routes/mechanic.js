@@ -1,35 +1,22 @@
+const isAdmin = require("../../middlewares/isAdmin");
+const isAuth = require("../../middlewares/isAuth");
 const {
-    getMechanics,
-    getMechanicById,
-    getMechanicByName,
-    getMechanicByTelephone,
-    postMechanic,
-    updateMechanic,
-    deleteMechanic
+  getMechanics,
+  getMechanicById,
+  postMechanic,
+  updateMechanic,
+  deleteMechanic,
 } = require("../controllers/mechanic");
 
 const mechanicsRouter = require("express").Router();
 
-// Obtener todos los mecánicos
-mechanicsRouter.get("/", getMechanics);
+mechanicsRouter.get("/", isAuth, getMechanics);
+mechanicsRouter.get("/:id", isAuth, getMechanicById);
 
-// Buscar mecánicos por nombre → /mechanics/search?name=juan
-mechanicsRouter.get("/search", getMechanicByName);
+mechanicsRouter.post("/", isAuth, isAdmin, postMechanic);
 
-// Buscar mecánico por teléfono → /mechanics/telephone/600000000
-mechanicsRouter.get("/telephone/:telephone", getMechanicByTelephone);
+mechanicsRouter.put("/:id", isAuth, isAdmin, updateMechanic);
 
-// Obtener mecánico por ID (DEBE IR DESPUÉS DE TODAS LAS RUTAS ESPECIALES)
-mechanicsRouter.get("/:id", getMechanicById);
-
-// Crear mecánico
-mechanicsRouter.post("/", postMechanic);
-
-// Actualizar mecánico
-mechanicsRouter.put("/:id", updateMechanic);
-
-// Eliminar mecánico
-mechanicsRouter.delete("/:id", deleteMechanic);
+mechanicsRouter.delete("/:id", isAuth, isAdmin, deleteMechanic);
 
 module.exports = mechanicsRouter;
-

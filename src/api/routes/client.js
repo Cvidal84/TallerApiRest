@@ -1,42 +1,22 @@
+const isAdmin = require("../../middlewares/isAdmin");
+const isAuth = require("../../middlewares/isAuth");
 const {
   getClients,
-  getClientByName,
   getClientById,
-  getClientByDocument,
-  getClientByTelephone,
   postClient,
   updateClient,
   deleteClient,
-  searchClients,
 } = require("../controllers/client");
 
 const clientsRouter = require("express").Router();
 
-// Obtener todos
-clientsRouter.get("/", getClients);
+clientsRouter.get("/", isAuth, getClients);
+clientsRouter.get("/:id", isAuth, getClientById);
 
-// Buscar por nombre, documento, telefono, email:
-clientsRouter.get("/search", searchClients);
+clientsRouter.post("/", isAuth, postClient);
 
-// Buscar por nombre
-/* clientsRouter.get("/search", getClientByName);
- */
-// Buscar por documento
-/* clientsRouter.get("/document/:documentNumber", getClientByDocument);
- */
-// Buscar por teléfono
-/* clientsRouter.get("/telephone/:telephone", getClientByTelephone);
- */
-// Buscar por ID (debe ir al final de los GET)
-clientsRouter.get("/:id", getClientById);
+clientsRouter.put("/:id", isAuth, updateClient);
 
-// Crear
-clientsRouter.post("/", postClient);
-
-// Actualizar
-clientsRouter.put("/:id", updateClient);
-
-// Eliminar
-clientsRouter.delete("/:id", deleteClient);
+clientsRouter.delete("/:id", isAuth, isAdmin, deleteClient);
 
 module.exports = clientsRouter;

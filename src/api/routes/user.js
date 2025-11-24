@@ -1,4 +1,4 @@
-const { isAdmin } = require("../../middlewares/isAdmin");
+const isAdmin = require("../../middlewares/isAdmin");
 const isAuth = require("../../middlewares/isAuth");
 const {
   register,
@@ -10,9 +10,9 @@ const {
 
 const usersRouter = require("express").Router();
 
-usersRouter.post("/register", register);
+usersRouter.post("/register", isAuth, isAdmin, register);
 usersRouter.post("/login", login);
-usersRouter.get("/", isAuth, getUsers); /* todos pueden ver o solo admins? */
+usersRouter.get("/", isAuth, isAdmin, getUsers);
 usersRouter.put("/:id", isAuth, isAdmin, updateUser);
 usersRouter.delete("/:id", isAuth, isAdmin, deleteUser);
 
