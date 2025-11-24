@@ -21,10 +21,18 @@ const getClients = async (req, res, next) => {
       };
     }
 
+    const collationOptions = { locale: "es", strength: 1 };
+
     // cálculo de páginas:
     const [clients, total] = await Promise.all([
-      Client.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
-      Client.countDocuments(filter),
+      Client.find(filter)
+        .collation(collationOptions)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+
+      Client.countDocuments(filter).collation(collationOptions),
     ]);
 
     // 4. Respuesta completa con metadatos

@@ -30,7 +30,7 @@ const clientSchema = new mongoose.Schema(
 );
 
 //para hacer busquedas rápidas mas tarde por nombre o por telefono
-clientSchema.index({ name: 1 });
+clientSchema.index({ name: 1 }, { collation: { locale: "es", strength: 1 } }); // strength: 1 -> ignoramos tildes y mayúsculas
 clientSchema.index({ telephone: 1 });
 
 const Client = mongoose.model("Client", clientSchema, "clients");
