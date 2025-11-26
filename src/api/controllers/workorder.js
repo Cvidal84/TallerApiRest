@@ -2,7 +2,32 @@ const Workorder = require("../models/workorder");
 const Client = require("../models/client");
 const Vehicle = require("../models/vehicle");
 
-// Listar con paginación y búsqueda ---
+// --- HELPER: Función para sumar precios de los items ---
+const calculateTotal = (items) => {
+  if (!items || !Array.isArray(items) || items.length === 0) return 0;
+
+  return items.reduce((acc, item) => {
+    // BLINDAJE: Si no viene cantidad, asumimos 1. Si no viene precio, asumimos 0.
+    const quantity = item.quantity !== undefined ? item.quantity : 1;
+    const price = item.price !== undefined ? item.price : 0;
+
+    return acc + quantity * price;
+  }, 0);
+};
+
+// --- HELPER MÁGICO: Transforma vocales en comodines ---
+// Convierte "civic" en "c[i,í,ï]v[i,í,ï]c"
+const unaccent = (str) => {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Separa tildes
+    .replace(/[aA]/g, "[a,á,à,ä,A,Á,À,Ä]")
+    .replace(/[eE]/g, "[e,é,ë,E,É,Ë]")
+    .replace(/[iI]/g, "[i,í,ï,I,Í,Ï]")
+    .replace(/[oO]/g, "[o,ó,ö,O,Ó,Ö]")
+    .replace(/[uU]/g, "[u,ú,ü,U,Ú,Ü]");
+};
+
 const getWorkorders = async (req, res, next) => {
   try {
     let { search, page = 1, limit = 10 } = req.query;
@@ -12,19 +37,21 @@ const getWorkorders = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     let filter = {};
+
     if (search) {
+      const searchPattern = unaccent(search);
+      const regex = new RegExp(searchPattern, "i");
       filter = {
         $or: [
-          { "snapshot.clientName": { $regex: search, $options: "i" } },
-          { "snapshot.vehiclePlate": { $regex: search, $options: "i" } },
-          { status: { $regex: search, $options: "i" } },
-          { paymentStatus: { $regex: search, $options: "i" } },
+          { "snapshot.clientName": regex },
+          { "snapshot.vehiclePlate": regex },
+          { status: regex },
+          { paymentStatus: regex },
         ],
       };
     }
 
     const collationOptions = { locale: "es", strength: 1 };
-
     const [workorders, total] = await Promise.all([
       Workorder.find(filter)
         .populate("clientId", "name email telephone")
@@ -36,8 +63,7 @@ const getWorkorders = async (req, res, next) => {
         .limit(limit)
         .sort({ createdAt: -1 })
         .lean(),
-
-      Workorder.countDocuments(filter).collation(collationOptions),
+      Workorder.countDocuments(filter),
     ]);
 
     return res.status(200).json({
@@ -50,12 +76,14 @@ const getWorkorders = async (req, res, next) => {
       },
     });
   } catch (error) {
+    console.error(error);
     return res
       .status(500)
       .json({ error: "Error buscando órdenes de trabajo ❌" });
   }
 };
 
+// --- GET: Por ID ---
 const getWorkorderById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -66,59 +94,33 @@ const getWorkorderById = async (req, res, next) => {
       .populate("createdBy", "email");
 
     if (!workorder) {
-      return res
-        .status(404)
-        .json({ error: "Orden de trabajo no encontrada ⚠️" });
+      return res.status(404).json({ error: "Orden no encontrada ⚠️" });
     }
     return res.status(200).json(workorder);
   } catch (error) {
-    if (error.name === "CastError") {
-      return res.status(400).json({ error: "ID de orden inválido ⚠️" });
-    }
+    if (error.name === "CastError")
+      return res.status(400).json({ error: "ID inválido ⚠️" });
     return res.status(500).json({ error: "Error obteniendo la orden ❌" });
   }
 };
 
-const getWorkordersByClientId = async (req, res, next) => {
-  try {
-    const { clientId } = req.params;
-    const workorders = await Workorder.find({ clientId })
-      .populate("vehicleId", "plate model")
-      .sort({ createdAt: -1 });
-
-    return res.status(200).json(workorders);
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Error obteniendo historial del cliente ❌" });
-  }
-};
-
-const getWorkordersByVehicleId = async (req, res, next) => {
-  try {
-    const { vehicleId } = req.params;
-    const workorders = await Workorder.find({ vehicleId }).sort({
-      createdAt: -1,
-    });
-
-    return res.status(200).json(workorders);
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Error obteniendo historial del vehículo ❌" });
-  }
-};
-
+// --- POST: Crear Orden ---
 const postWorkorder = async (req, res, next) => {
   try {
-    // Validar que hay cuerpo
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({ error: "Faltan datos de la orden ⚠️" });
     }
 
-    const { clientId, vehicleId, mechanicId, createdBy, kms, items } = req.body;
+    const { clientId, vehicleId, mechanicId, kms, items, estimatedCost } =
+      req.body;
 
-    // 1. Validar existencias
+    // 1. Obtener Usuario del Token
+    const loggedUserId = req.user ? req.user._id || req.user.id : null;
+    if (!loggedUserId) {
+      return res.status(401).json({ error: "No autorizado 🚫" });
+    }
+
+    // 2. Validaciones
     const client = await Client.findById(clientId);
     if (!client)
       return res.status(404).json({ error: "Cliente no encontrado ⚠️" });
@@ -127,32 +129,27 @@ const postWorkorder = async (req, res, next) => {
     if (!vehicle)
       return res.status(404).json({ error: "Vehículo no encontrado ⚠️" });
 
-    // 2. Lógica de Kilómetros: Actualizar ficha del coche
-    // Si no mandan kms, usamos los que ya tenía el coche.
-    let currentKms = kms ? parseInt(kms) : vehicle.km;
+    // 3. Lógica de Kms (CORREGIDO: 'kms' en plural)
+    // Usamos vehicle.kms porque así se llama en tu modelo Vehicle
+    let currentKms = kms ? parseInt(kms) : vehicle.kms;
 
-    if (kms && parseInt(kms) > vehicle.km) {
-      // Solo actualizamos si ha sumado kilómetros
-      vehicle.km = parseInt(kms);
+    if (kms && parseInt(kms) > vehicle.kms) {
+      vehicle.kms = parseInt(kms);
       await vehicle.save();
     }
 
-    // 3. Calcular costes iniciales (si vienen items)
-    let calculatedFinalCost = 0;
-    if (items && Array.isArray(items)) {
-      calculatedFinalCost = items.reduce((acc, item) => {
-        return acc + item.quantity * item.price;
-      }, 0);
-    }
+    // 4. Calcular Costes Automáticamente
+    const totalItemsCost = calculateTotal(items);
 
-    // 4. Crear la orden con SNAPSHOT
+    // 5. Crear la orden
     const newWorkorder = new Workorder({
-      ...req.body,
-      finalCost: req.body.finalCost || calculatedFinalCost, // Usamos el calculado si no envían uno fijo
+      ...req.body, // Incluye description, items, etc.
+      createdBy: loggedUserId,
+      finalCost: totalItemsCost, // Guardamos la suma real
+      estimatedCost: estimatedCost || totalItemsCost, // Si no hay presupuesto manual, usamos la suma
       snapshot: {
         clientName: client.name,
         vehiclePlate: vehicle.plate,
-        vehicleModel: vehicle.model,
         kms: currentKms,
       },
     });
@@ -164,44 +161,65 @@ const postWorkorder = async (req, res, next) => {
       workorder: workorderSaved,
     });
   } catch (error) {
-    if (error.name === "ValidationError") {
-      return res.status(400).json({ error: "Datos inválidos en la orden ⚠️" });
-    }
+    if (error.name === "ValidationError")
+      return res
+        .status(400)
+        .json({ error: "Datos inválidos ⚠️", details: error.message });
     console.error(error);
     return res.status(500).json({ error: "Error al crear la orden ❌" });
   }
 };
 
+// --- PUT: Actualizar Orden ---
+// --- PUT: Actualizar Orden ---
 const updateWorkorder = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    // Extraemos 'kms' y 'items' para tratarlos de forma especial
+    const { kms, items, ...otherUpdates } = req.body;
 
-    // 1. Buscamos el documento (sin lean, necesitamos que sea instancia de Mongoose)
     const workorder = await Workorder.findById(id);
-
-    if (!workorder) {
+    if (!workorder)
       return res.status(404).json({ error: "Orden no encontrada ⚠️" });
+
+    // --- 1. LÓGICA ESPECIAL PARA KILÓMETROS ---
+    if (kms) {
+      const newKms = parseInt(kms);
+
+      // A) Actualizamos la ficha del vehículo (si es necesario)
+      const vehicle = await Vehicle.findById(workorder.vehicleId);
+      if (vehicle) {
+        // Solo actualizamos el coche si los nuevos kms son mayores (opcional, pero recomendado)
+        // O si prefieres corregir un error, quita el 'if' y actualiza siempre.
+        if (newKms > vehicle.kms) {
+          vehicle.kms = newKms;
+          await vehicle.save();
+        }
+      }
+
+      // B) Actualizamos el dato dentro del snapshot de la orden
+      workorder.snapshot.kms = newKms;
     }
 
-    // 2. Actualizamos manualmente los campos enviados
-    Object.keys(updates).forEach((key) => {
-      // Protegemos campos delicados si es necesario (ej: no dejar cambiar _id)
-      if (key !== "_id" && key !== "createdAt") {
-        workorder[key] = updates[key];
+    // --- 2. LÓGICA ESPECIAL PARA ITEMS (Recálculo de precio) ---
+    if (items) {
+      workorder.items = items; // Actualizamos los items
+      // Recalculamos el coste final automáticamente
+      workorder.finalCost = calculateTotal(items);
+    }
+
+    Object.keys(otherUpdates).forEach((key) => {
+      // Protegemos campos críticos que no se deben tocar
+      if (
+        key !== "_id" &&
+        key !== "createdAt" &&
+        key !== "createdBy" &&
+        key !== "snapshot"
+      ) {
+        workorder[key] = otherUpdates[key];
       }
     });
 
-    // Si se modifican los items, recalculamos el coste (opcional, pero recomendado)
-    if (updates.items) {
-      const newTotal = workorder.items.reduce(
-        (acc, item) => acc + item.quantity * item.price,
-        0
-      );
-      workorder.finalCost = newTotal;
-    }
-
-    // 3. Guardamos -> AQUÍ SE DISPARA EL HOOK pre('save') para las fechas completedDate/paidDate
     const workorderUpdated = await workorder.save();
 
     return res.status(200).json({
@@ -209,37 +227,54 @@ const updateWorkorder = async (req, res, next) => {
       workorder: workorderUpdated,
     });
   } catch (error) {
-    if (error.name === "ValidationError") {
-      return res
-        .status(400)
-        .json({ error: "Datos de actualización inválidos ⚠️" });
-    }
-    if (error.name === "CastError") {
-      return res.status(400).json({ error: "ID de orden inválido ⚠️" });
-    }
-    console.error(error);
-    return res.status(500).json({ error: "Error actualizando la orden ❌" });
+    if (error.name === "ValidationError" || error.name === "CastError")
+      return res.status(400).json({ error: "Datos inválidos ⚠️" });
+    return res.status(500).json({ error: "Error actualizando ❌" });
   }
 };
 
+// --- DELETE ---
 const deleteWorkorder = async (req, res, next) => {
   try {
     const { id } = req.params;
     const deleted = await Workorder.findByIdAndDelete(id);
 
-    if (!deleted) {
+    if (!deleted)
       return res.status(404).json({ error: "Orden no encontrada ⚠️" });
-    }
 
     return res.status(200).json({
-      message: "Orden eliminada correctamente ✅",
+      message: "Orden eliminada ✅",
       workorder: deleted,
     });
   } catch (error) {
-    if (error.name === "CastError") {
+    if (error.name === "CastError")
       return res.status(400).json({ error: "ID inválido ⚠️" });
-    }
-    return res.status(500).json({ error: "Error eliminando la orden ❌" });
+    return res.status(500).json({ error: "Error eliminando ❌" });
+  }
+};
+
+// --- Helpers Frontend ---
+const getWorkordersByClientId = async (req, res, next) => {
+  try {
+    const { clientId } = req.params;
+    const workorders = await Workorder.find({ clientId })
+      .populate("vehicleId", "plate model")
+      .sort({ createdAt: -1 });
+    return res.status(200).json(workorders);
+  } catch (error) {
+    return res.status(500).json({ error: "Error historial cliente ❌" });
+  }
+};
+
+const getWorkordersByVehicleId = async (req, res, next) => {
+  try {
+    const { vehicleId } = req.params;
+    const workorders = await Workorder.find({ vehicleId }).sort({
+      createdAt: -1,
+    });
+    return res.status(200).json(workorders);
+  } catch (error) {
+    return res.status(500).json({ error: "Error historial vehículo ❌" });
   }
 };
 
