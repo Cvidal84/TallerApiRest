@@ -1,4 +1,5 @@
 const Client = require("../models/client");
+const unaccent = require("../../utils/unaccent");
 
 const getClients = async (req, res, next) => {
   try {
@@ -8,22 +9,23 @@ const getClients = async (req, res, next) => {
     limit = parseInt(limit);
     const skip = (page - 1) * limit;
 
-    //construimos el filtro:
     let filter = {};
     if (search) {
+      const searchPattern = unaccent(search);
+      const regex = new RegExp(searchPattern, "i");
       filter = {
         $or: [
-          { name: { $regex: search, $options: "i" } },
-          { documentNumber: { $regex: search, $options: "i" } },
-          { telephone: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
+          { name: { $regex: regex } },
+          { documentNumber: { $regex: regex } },
+          { telephone: { $regex: regex } },
+          { email: { $regex: regex } },
         ],
       };
     }
 
+    // Mantenemos collation SOLO para que el ORDENAMIENTO (sort) sea alfabético correcto en español
     const collationOptions = { locale: "es", strength: 1 };
 
-    // cálculo de páginas:
     const [clients, total] = await Promise.all([
       Client.find(filter)
         .collation(collationOptions)
@@ -32,10 +34,9 @@ const getClients = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .lean(),
 
-      Client.countDocuments(filter).collation(collationOptions),
+      Client.countDocuments(filter),
     ]);
 
-    // 4. Respuesta completa con metadatos
     return res.status(200).json({
       clients,
       pagination: {

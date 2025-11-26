@@ -1,21 +1,25 @@
+const unaccent = require("../../utils/unaccent");
 const Vehicle = require("../models/vehicle");
 
 // GET: Obtener vehículos con BUSQUEDA Y PAGINAS (=clients)
+/* Mirar si queremos buscar por nombre de cliente */
 const getVehicles = async (req, res, next) => {
-
-  /* REVISAR SI QUEREMOS TAMBIEN PODER BUSCAR POR EL NOMBRE DE CLIENTE!!! */
   try {
     let { search, page = 1, limit = 10 } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     const skip = (page - 1) * limit;
+
     let filter = {};
+
     if (search) {
+      const searchPattern = unaccent(search);
+      const regex = new RegExp(searchPattern, "i");
       filter = {
         $or: [
-          { plate: { $regex: search, $options: "i" } },
-          { brand: { $regex: search, $options: "i" } },
-          { model: { $regex: search, $options: "i" } },
+          { plate: { $regex: regex } },
+          { brand: { $regex: regex } },
+          { model: { $regex: regex } },
         ],
       };
     }
@@ -23,13 +27,14 @@ const getVehicles = async (req, res, next) => {
     const [vehicles, total] = await Promise.all([
       Vehicle.find(filter)
         .collation(collationOptions)
-        .populate("clientId", "name email")
+        .populate("clientId", "name email telephone")
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
         .lean(),
-      Vehicle.countDocuments(filter).collation(collationOptions),
+      Vehicle.countDocuments(filter),
     ]);
+
     return res.status(200).json({
       vehicles,
       pagination: {

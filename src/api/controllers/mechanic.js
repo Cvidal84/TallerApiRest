@@ -1,4 +1,5 @@
 const Mechanic = require("../models/mechanic");
+const unaccent = require("../../utils/unaccent");
 
 const getMechanics = async (req, res, next) => {
   try {
@@ -10,15 +11,15 @@ const getMechanics = async (req, res, next) => {
 
     let filter = {};
     if (search) {
+      // Usamos la utilidad para ignorar acentos
+      const searchPattern = unaccent(search);
+      const regex = new RegExp(searchPattern, "i");
+
       filter = {
-        $or: [
-          { name: { $regex: search, $options: "i" } },
-          { telephone: { $regex: search, $options: "i" } },
-        ],
+        $or: [{ name: { $regex: regex } }, { telephone: { $regex: regex } }],
       };
     }
 
-    // strength: 1 -> ignora tildes y mayúsculas !!!!!!
     const collationOptions = { locale: "es", strength: 1 };
 
     const [mechanics, total] = await Promise.all([
@@ -27,9 +28,9 @@ const getMechanics = async (req, res, next) => {
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
-        .lean(), // optimización de velocidad
+        .lean(),
 
-      Mechanic.countDocuments(filter).collation(collationOptions),
+      Mechanic.countDocuments(filter),
     ]);
 
     return res.status(200).json({
