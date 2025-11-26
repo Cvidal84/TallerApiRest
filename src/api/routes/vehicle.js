@@ -1,30 +1,29 @@
-const { 
-    getVehicles,
-    getVehicleByPlate,
-    getVehicleByClientId,
-    postVehicle,
-    updateVehicle,
-    deleteVehicle
- } = require("../controllers/vehicle");
+const isAdmin = require("../../middlewares/isAdmin");
+const isAuth = require("../../middlewares/isAuth");
+const {
+  getVehicles,
+  getVehicleByPlate,
+  getVehicleByClientId,
+  postVehicle,
+  updateVehicle,
+  deleteVehicle,
+} = require("../controllers/vehicle");
 
- const vehiclesRouter = require("express").Router();
+const vehiclesRouter = require("express").Router();
 
- //obtener todos
- vehiclesRouter.get("/", getVehicles);
+vehiclesRouter.get("/", isAuth, getVehicles);
+//buscar por matricula:
+vehiclesRouter.get("/plate/:plate", isAuth, getVehicleByPlate);
+//buscar por cliente:
+vehiclesRouter.get("/client/:clientId", isAuth, getVehicleByClientId);
 
- //buscar por matricula
- vehiclesRouter.get("/plate/:plate", getVehicleByPlate);
+//añadir un vehículo:
+vehiclesRouter.post("/", isAuth, postVehicle);
 
- //buscar por cliente
- vehiclesRouter.get("/client/:clientId", getVehicleByClientId);
+//modificar vehículo:
+vehiclesRouter.put("/:id", isAuth, updateVehicle);
 
- //añadir un vehículo
- vehiclesRouter.post("/", postVehicle);
+//eliminar vehículo:
+vehiclesRouter.delete("/:id", isAuth, isAdmin, deleteVehicle);
 
- //modificar vehículo
- vehiclesRouter.put("/:id", updateVehicle);
-
- //eliminar vehículo
- vehiclesRouter.delete("/:id", deleteVehicle);
-
- module.exports = vehiclesRouter;
+module.exports = vehiclesRouter;
