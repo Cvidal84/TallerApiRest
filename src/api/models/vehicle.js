@@ -1,10 +1,12 @@
 const mongoose = require("mongoose");
 
-const Schema = mongoose.Schema;
-
-const vehicleSchema = new Schema(
+const vehicleSchema = new mongoose.Schema(
   {
-    clientId: { type: Schema.Types.ObjectId, ref: "Client", required: true },
+    clientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client",
+      required: true,
+    },
     plate: {
       type: String,
       required: true,

@@ -1,79 +1,97 @@
 const mongoose = require("mongoose");
 
-const Schema = mongoose.Schema;
+const itemSchema = new mongoose.Schema({
+  description: { type: String, required: true }, // Ej: "Filtro Aceite"
+  quantity: { type: Number, default: 1 },
+  price: { type: Number, default: 0 },
+});
 
-const workorderSchema = new Schema(
-    {
-        //cliente de la orden
-        clientId: {
-            type: Schema.Types.ObjectId,
-            ref: "clients", //referencia a colección de clientes
-            required: true,
-        },
-        clientName: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        //vehiculo reparado
-        vehicleId: {
-            type: Schema.Types.ObjectId,
-            ref: "vehicles",
-            required: true,
-        },
-        // matrícula en el momento de crear la orden (snapshot)
-        vehiclePlate: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        //usuario que lo crea
-        createdBy: {
-            type: Schema.Types.ObjectId,
-            ref: "users",
-            required: true,
-        },
-        //mecánico al que se asigna el trabajo
-        mechanicId: {
-            type: Schema.Types.ObjectId,
-            ref: "mechanics",
-            required: true,
-        },
-        status: {
-            type: String,
-            enum:["Pending", "In Progress", "Completed", "Cancelled"],
-            default: "Pending",
-            required: true,
-        },
-        description: {
+const workorderSchema = new mongoose.Schema(
+  {
+    clientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client",
+      required: true,
+    },
+    vehicleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vehicle",
+      required: true,
+    },
+    //snapshot: guardamos matrícula y datos básicos aquí. Si el coche se borra o cambia de dueño, la factura histórica no se rompe.
+    snapshot: {
+      vehiclePlate: {
         type: String,
         required: true,
         trim: true,
-        },
-        entryDate: {
-        type: Date,
-        default: Date.now,
-        },
-
-        // fecha de salida / entrega
-        exitDate: {
-        type: Date,
-        },
-
-        // kms del coche al entrar, podria actualizar la ficha del coche.
-        kms: {
-        type: Number,
-        },
-
-        // costes (opcional)
-        estimatedCost: { type: Number },
-        finalCost: { type: Number },
+        uppercase: true,
+      },
+      clientName: { type: String, required: true, trim: true },
+      kms: { type: Number, required: true }, // Kms de entrada, quremos que actualice en el modelo vehicle
     },
-    {
-        timestamps: true,
-        versionKey: false,
-    }
-)
+    //usuario que crea la orden:
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    //mecánico al que se asigna el trabajo
+    mechanicId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Mechanic",
+      required: true,
+    },
+    //estados:
+    status: {
+      type: String,
+      enum: ["Pending", "In Progress", "Completed", "Cancelled"],
+      default: "Pending",
+      required: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Paid"],
+      default: "Pending",
+    },
+
+    items: [itemSchema], // desglose
+    completedDate: {
+      type: Date,
+    }, // se rellena al pasar status a 'Completed'
+    paidDate: {
+      type: Date,
+    }, // se rellena al pasar paymentStatus a 'Paid'
+    estimatedCost: { type: Number },
+    finalCost: { type: Number },
+  },
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
+
+workorderSchema.pre("save", function (next) {
+  const order = this;
+  /* Lógica para fecha de COMPLETADO */
+  // Si cambia el estado a Completed y aun no tiene fecha...
+  if (
+    order.isModified("status") &&
+    order.status === "Completed" &&
+    !order.completedDate
+  ) {
+    order.completedDate = new Date();
+  }
+  /* Lógica para fecha de PAGADO */
+  // Si cambia el estado de pago a Paid y aun no tiene fecha...
+  if (
+    order.isModified("paymentStatus") &&
+    order.paymentStatus === "Paid" &&
+    !order.paidDate
+  ) {
+    order.paidDate = new Date();
+  }
+  next();
+});
 
 const Workorder = mongoose.model("Workorder", workorderSchema, "workorders");
 module.exports = Workorder;

@@ -1,30 +1,28 @@
+const isAdmin = require("../../middlewares/isAdmin");
+const isAuth = require("../../middlewares/isAuth");
 const {
-    getWorkorders,
-    getWorkordersByClientName,
-    getWorkorderByClientId,
-    getWorkordersByPlate,
-    getWorkordersByVehicleId,
-    postWorkorder,
-    updateWorkorder,
-    deleteWorkorder
+  getWorkorders,
+  getWorkorderById,
+  getWorkordersByClientId,
+  getWorkordersByVehicleId,
+  postWorkorder,
+  updateWorkorder,
+  deleteWorkorder,
 } = require("../controllers/workorder");
 
 const workordersRouter = require("express").Router();
 
-workordersRouter.get("/", getWorkorders);
+// 1. GET GENERAL (Incluye ?search=... ?page=...)
+workordersRouter.get("/", isAuth, getWorkorders);
+// 2. GET ESPECÍFICOS (Deben ir ANTES de /:id)
+workordersRouter.get("/client/:clientId", isAuth, getWorkordersByClientId);
+workordersRouter.get("/vehicle/:vehicleId", isAuth, getWorkordersByVehicleId);
+workordersRouter.get("/:id", isAuth, getWorkorderById);
 
-workordersRouter.get("/search", getWorkordersByClientName);
+workordersRouter.post("/", isAuth, postWorkorder);
 
-workordersRouter.get("/plate/:plate", getWorkordersByPlate);
+workordersRouter.put("/:id", isAuth, updateWorkorder);
 
-workordersRouter.get("/client/:clientId", getWorkorderByClientId);
-
-workordersRouter.get("/vehicle/:vehicleId", getWorkordersByVehicleId);
-
-workordersRouter.post("/", postWorkorder);
-
-workordersRouter.put("/:id", updateWorkorder);
-
-workordersRouter.delete("/:id", deleteWorkorder);
+workordersRouter.delete("/:id", isAuth, isAdmin, deleteWorkorder);
 
 module.exports = workordersRouter;
