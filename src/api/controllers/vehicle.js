@@ -1,5 +1,6 @@
 const unaccent = require("../../utils/unaccent");
 const Vehicle = require("../models/vehicle");
+const Client = require("../models/client");
 
 // GET: Obtener vehículos con BUSQUEDA Y PAGINAS (=clients)
 /* Mirar si queremos buscar por nombre de cliente */
@@ -27,7 +28,7 @@ const getVehicles = async (req, res, next) => {
     const [vehicles, total] = await Promise.all([
       Vehicle.find(filter)
         .collation(collationOptions)
-        .populate("clientId", "name email telephone")
+        .populate("client", "name email telephone")
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
@@ -58,7 +59,7 @@ const getVehicleByPlate = async (req, res, next) => {
     }
     const cleanPlate = plate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
     const vehicle = await Vehicle.findOne({ plate: cleanPlate }).populate(
-      "clientId",
+      "client",
       "name"
     );
     if (!vehicle) {
@@ -73,7 +74,7 @@ const getVehicleByPlate = async (req, res, next) => {
 const getVehicleByClientId = async (req, res, next) => {
   try {
     const { clientId } = req.params;
-    const vehicles = await Vehicle.find({ clientId });
+    const vehicles = await Vehicle.find({ client: clientId });
     if (!vehicles || vehicles.length === 0) {
       return res
         .status(404)
@@ -95,8 +96,30 @@ const postVehicle = async (req, res, next) => {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({ error: "Faltan datos del vehículo ⚠️" });
     }
+
+    // Extraemos el id del cliente (del body):
+    const clientId = req.body.client;
+    if (!clientId) {
+      return res
+        .status(400)
+        .json({ error: "El vehículo debe estar asignado a un cliente ⚠️" });
+    }
+
+    // verificamos que el cliente existe:
+    const clientFound = await Client.findById(clientId);
+    if (!clientFound) {
+      return res
+        .status(404)
+        .json({ error: "El cliente asignado no existe ⚠️" });
+    }
+
     const newVehicle = new Vehicle(req.body);
     const vehicleSaved = await newVehicle.save();
+
+    // ACTUALIZAMOS AL CLIENTE (añadimos el vehiculo a su array de vehicles):
+    clientFound.vehicles.push(vehicleSaved._id);
+    await clientFound.save();
+
     return res.status(201).json({
       message: "Vehículo creado con éxito ✅",
       vehicle: vehicleSaved,
@@ -115,7 +138,7 @@ const postVehicle = async (req, res, next) => {
 const updateVehicle = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { _id, ...data } = req.body;
+    const { _id, client, ...data } = req.body; // Impedimos que se pueda cambiar el cliente
     const vehicleUpdated = await Vehicle.findByIdAndUpdate(id, data, {
       new: true,
       runValidators: true,
@@ -149,8 +172,16 @@ const deleteVehicle = async (req, res, next) => {
     if (!vehicleDeleted) {
       return res.status(404).json({ error: "Vehículo no encontrado ⚠️" });
     }
+
+    // ACTUALIZAMOS AL CLIENTE:
+    if (vehicleDeleted.client) {
+      await Client.findByIdAndUpdate(vehicleDeleted.client, {
+        $pull: { vehicles: vehicleDeleted._id },
+      });
+    }
+
     return res.status(200).json({
-      message: "Vehículo eliminado ✅",
+      message: "Vehículo eliminado y desvinculado ✅",
       vehicle: vehicleDeleted,
     });
   } catch (error) {

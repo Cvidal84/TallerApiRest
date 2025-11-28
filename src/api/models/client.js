@@ -22,6 +22,12 @@ const clientSchema = new mongoose.Schema(
         "Por favor, introduce un correo electrónico válido",
       ],
     },
+    vehicles: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Vehicle",
+      },
+    ],
   },
   {
     timestamps: true,

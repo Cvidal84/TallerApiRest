@@ -54,7 +54,7 @@ const getClients = async (req, res, next) => {
 
 const getClientById = async (req, res, next) => {
   try {
-    const client = await Client.findById(req.params.id);
+    const client = await Client.findById(req.params.id).populate("vehicles");
     if (!client) {
       return res.status(404).json({ error: "Cliente no encontrado ⚠️" });
     }
